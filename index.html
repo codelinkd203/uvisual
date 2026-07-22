@@ -523,58 +523,7 @@ b){(new g(a)).read(b)},Reader:g,Config:q}},{"./ArrayFileReader":3,"./BlobFileRea
       renderWaves();
     }, 500);
   }
-
-  // ── WebSocket remote control ──────────────────────────────────────────────
-  (function(){
-    const WS_URL='ws://'+location.hostname+':8765';
-    let sock,reconnTimer;
-
-    function connect(){
-      sock=new WebSocket(WS_URL);
-      sock.onopen=()=>{ clearTimeout(reconnTimer); pushTracks(); };
-      sock.onclose=()=>{ reconnTimer=setTimeout(connect,3000); };
-      sock.onmessage=({data})=>{
-        let msg; try{msg=JSON.parse(data);}catch{return;}
-        if(msg.type!=='cmd') return;
-        switch(msg.cmd){
-          case 'play':   if(audio.paused)  btnPlay.click(); break;
-          case 'pause':  if(!audio.paused) btnPlay.click(); break;
-          case 'next':   btnNext.click(); break;
-          case 'prev':   btnPrev.click(); break;
-          case 'seek':
-            if(audio.duration&&msg.value!=null)
-              audio.currentTime=Math.min(msg.value,audio.duration);
-            break;
-          case 'load':
-            if(msg.url) fetch(msg.url)
-              .then(r=>r.blob())
-              .then(b=>{ const n=msg.url.split('/').pop();
-                handleFile(new File([b],decodeURIComponent(n),{type:b.type})); });
-            break;
-        }
-      };
-    }
-
-    function pushState(){
-      if(!sock||sock.readyState!==1) return;
-      sock.send(JSON.stringify({
-        type:'state', playing:!audio.paused,
-        position:audio.currentTime||0, duration:audio.duration||0,
-        title:trackTitle.textContent, artist:trackArtist.textContent,
-      }));
-    }
-
-    function pushTracks(){
-      if(!sock||sock.readyState!==1) return;
-      fetch('/tracks.json').then(r=>r.json())
-        .then(tracks=>sock.send(JSON.stringify({type:'tracks',tracks})))
-        .catch(()=>{});
-    }
-
-    setInterval(pushState,1000);
-    connect();
-  })();
-
+  
   // ?src= autoload
   (function(){
     const params=new URLSearchParams(window.location.search);
@@ -594,13 +543,6 @@ b){(new g(a)).read(b)},Reader:g,Config:q}},{"./ArrayFileReader":3,"./BlobFileRea
       });
   })();
 })();
-
-const ws = new WebSocket('ws://raspberrypi.local:8765');
-ws.onmessage = ({ data }) => {
-  if (data === 'play')  btnPlay.click();
-  if (data === 'next')  btnNext.click();
-  if (data === 'prev')  btnPrev.click();
-};
 </script>
 </body>
 </html>
